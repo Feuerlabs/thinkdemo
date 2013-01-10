@@ -1,8 +1,9 @@
-exoskeleton
+exodemo
 ===========
 
-Skeleton application using exoport
+Demo application using exoport
 
+(The following text is a copy from exoskeleton/README.md)
 This is an example of how to build an application on top of `exoport`
 and get up and running quickly.
 

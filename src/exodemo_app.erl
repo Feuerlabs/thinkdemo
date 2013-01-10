@@ -1,4 +1,4 @@
--module(exoskeleton_app).
+-module(exodemo_app).
 
 -behaviour(application).
 
@@ -10,7 +10,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    exoskeleton_sup:start_link().
+    exodemo_sup:start_link().
 
 stop(_State) ->
     ok.

@@ -1,5 +1,5 @@
 
--module(exoskeleton_sup).
+-module(exodemo_sup).
 
 -behaviour(supervisor).
 

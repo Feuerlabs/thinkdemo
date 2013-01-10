@@ -1,6 +1,6 @@
 .PHONY:	all deps compile setup clean
 
-NAME=exoskeleton
+NAME=exodemo
 
 all: deps compile
 

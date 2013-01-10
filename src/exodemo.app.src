@@ -1,12 +1,13 @@
-{application, exoskeleton,
+{application, exodemo,
  [
   {description, ""},
   {vsn, "1"},
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+		  exoport
                  ]},
-  {mod, { exoskeleton_app, []}},
+  {mod, { exodemo_app, []}},
   {env, []}
  ]}.
