@@ -6,7 +6,8 @@
   {applications, [
                   kernel,
                   stdlib,
-		  exoport
+		  exoport,
+		  can
                  ]},
   {mod, { exodemo_app, []}},
   {env, []}
