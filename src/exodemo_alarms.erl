@@ -2,7 +2,8 @@
 -behavior(gen_server).
 
 -export([set/2,
-	 clear/1]).
+	 clear/1,
+	 check_alarm/3]).
 
 -export([start_link/0,
 	 init/1,
@@ -19,6 +20,9 @@
 
 set(FrameID, Value) ->
     gen_server:cast(?MODULE, {set, timestamp(), FrameID, Value}).
+
+check_alarm(FrameID, Data, DataLen) ->
+    gen_server:cast(?MODULE, {check_alarm, timestamp(), FrameID, Data, DataLen}).
 
 clear(FrameID) ->
     gen_server:cast(?MODULE, {clear, FrameID}).
@@ -51,6 +55,10 @@ handle_cast({clear, FrameID}, #st{alarms = As} = S) ->
 	    NewAs = orddict:store(FrameID, A#alarm{status = cleared}, As),
 	    {reply, true, S#st{alarms = NewAs}}
     end;
+handle_cast({check_alarm, TS, FrameID, Data, DataLen}, S) ->
+    io:format("Will check alarm for TS: ~p Frame: ~p Data: ~p DataLen: ~p~n", [ TS, FrameID, Data, DataLen ]),
+    {noreply, S};
+
 handle_cast(_, S) ->
     {noreply, S}.
 

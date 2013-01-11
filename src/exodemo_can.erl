@@ -14,13 +14,14 @@
 -record(st, { iface=false, eff=false}).
 
 start_can(Interface, ExtendedFrameFormatFlag) ->
-    gen_server:cast(?MODULE, {start_can, Interface, ExtendedFrameFormatFlag}).
+    io:format("exodemo_can:start_can(~p, ~p)~n", [Interface, ExtendedFrameFormatFlag]),
+    gen_server:call(?MODULE, {start_can, Interface, ExtendedFrameFormatFlag}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_) ->
-    can_router:start(),
+    io:format("exodemo_can:init()~n"),
     {ok, #st{}}.
 
 handle_cast(_, S) ->
@@ -28,6 +29,7 @@ handle_cast(_, S) ->
 
 
 handle_call({start_can, Interface, ExtendedFrameFormatFlag}, _From, #st { iface = OldInterface } = _St) ->
+    io:format("exodemo_can:handle_call(start_can, ~p, ~p)~n", [Interface, ExtendedFrameFormatFlag]),
     case OldInterface of
 	false ->
 	    true;
@@ -36,19 +38,23 @@ handle_call({start_can, Interface, ExtendedFrameFormatFlag}, _From, #st { iface 
     end,
 
     can_sock:start(Interface),
-    #st { iface = Interface, eff = ExtendedFrameFormatFlag };
+    can_router:attach(),
+    {reply, ok, #st { iface = Interface, eff = ExtendedFrameFormatFlag }};
 
-handle_call(_Msg, _From, S) ->
+handle_call(Msg, From, S) ->
+    io:format("exodemo_can:handle_call(~p, ~p, ~p)~n", [Msg, From, S]),
     {reply, error, S}.
 
 
 handle_info({can_frame, FrameID, DataLen, Data, _A, _B}, St) ->
-    exodemo_log:log(timestamp(), FrameID, DataLen, Data),
+    io:format("exodemo_can:handle_info(can_frame, ~p, ~p)~n", [FrameID, DataLen]),
+    exodemo_log:log_can(FrameID, DataLen, Data),
+    exodemo_alarms:check_alarm(FrameID, DataLen, Data),
     {noreply, St};
 
-handle_info(_Msg,  S) ->
+handle_info(Msg,  S) ->
+    io:format("exodemo_can:handle_info(~p, ~p)~n", [Msg, S]),
     {noreply, S}.
-
 
 terminate(_Reason, _S) ->
     can_router:stop(),
@@ -59,7 +65,3 @@ code_change(_FromVsn, S, _Extra) ->
 
 %% helper functions
 
-%% FIXME ms since epoch
-timestamp() ->
-    DT = erlang:universaltime(),
-    calendar:datetime_to_gregorian_seconds(DT).
