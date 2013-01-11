@@ -13,9 +13,10 @@
 
 -record(st, {}).
 
-log_can(FrameID, Data, DataLen) ->
+log_can(FrameID, DataLen, Data) ->
+    TS = exodemo_lib:timestamp(),
     %% FIXME: ms_timestamp() should be millisec_timestamp() (ms since epoch).
-    gen_server:cast(?MODULE, {log_can, ms_timestamp(), FrameID, Data, DataLen}).
+    gen_server:cast(?MODULE, {log_can, TS, FrameID, DataLen, Data}).
 
 
 start_link() ->
@@ -24,8 +25,9 @@ start_link() ->
 init(_) ->
     {ok, #st{}}.
 
-handle_cast({log_can, TS, FrameID, Data, DataLen}, S) ->
-    io:format("Will log TS:~p FrameID:~p Data:~p DataLen:~p~n", [ TS, FrameID, Data, DataLen ]),
+handle_cast({log_can, TS, FrameID, DataLen, Data}, S) ->
+    io:format("Will log TS:~p FrameID:~p DataLen:~p Data:~p~n",
+	      [TS, FrameID, DataLen, Data]),
     {noreply, S};
 handle_cast(_, S) ->
     {noreply, S}.
@@ -45,6 +47,7 @@ code_change(_FromVsn, S, _Extra) ->
 
 %% helper functions
 %% FIXME ms since epoch
-ms_timestamp() ->
-    DT = erlang:universaltime(),
-    calendar:datetime_to_gregorian_seconds(DT).
+%% ms_timestamp() ->
+
+%%     DT = erlang:universaltime(),
+%%     calendar:datetime_to_gregorian_seconds(DT).
