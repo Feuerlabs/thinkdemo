@@ -41,28 +41,7 @@ start_link() ->
 init(_) ->
     {ok, read_alarms(#st{})}.
 
-%% handle_cast({set, TS, FrameID, Value}, #st{alarms = As} = S) ->
-%%     S1 = case orddict:find(FrameID, As) of
-%% 	     {ok, #alarm{status = sent}} ->
-%% 		 S;
-%% 	     _ ->
-%% 		 %% send alarm...
-%% 		 self() ! send_alarms,
-%% 		 NewAs = orddict:store(
-%% 			   FrameID, #alarm{status = set,
-%% 					   ts = TS,
-%% 					   value = Value}, As),
-%% 		 S#st{alarms = NewAs}
-%% 	 end,
-%%     {noreply, S1};
-%% handle_cast({clear, FrameID}, #st{alarms = As} = S) ->
-%%     case orddict:find(FrameID, As) of
-%% 	error ->
-%% 	    {reply, false, S};
-%% 	{ok, A} ->
-%% 	    NewAs = orddict:store(FrameID, A#alarm{status = cleared}, As),
-%% 	    {reply, true, S#st{alarms = NewAs}}
-%%     end;
+
 handle_cast({check_alarm, TS, FrameID, Data, DataLen},
 	    #st{alarms = As} = S) ->
     S1 =case orddict:find(FrameID, As) of
@@ -115,6 +94,7 @@ set_alarm(TS, FrameID, Value, Alarm, #st{alarms = As} = S) ->
 		      FrameID, Alarm#alarm{status = set,
 					   ts = TS,
 					   value = Value}, As),
+	    ?debug("OldAs = ~p; NewAs = ~p~n", [As, NewAs]),
 	    S#st{alarms = NewAs}
     end.
 
@@ -143,17 +123,30 @@ flush_send_msgs() ->
 
 rpc(Alarms) ->
     {ToSend, NewAlarms} =
-	lists:mapfoldr(
-	  fun({FrameID, #alarm{status = set,
-			       ts = TS,
-			       value = Value} = A}, Acc) ->
+	orddict:fold(
+	  fun(FrameID, #alarm{status = set,
+			      ts = TS,
+			      value = Value} = A, {Send, Update}) ->
 		  {[{struct, [{'ts', TS},
 			      {'can-frame-id', FrameID},
-			      {'can-value', Value}]} | Acc],
-		   {FrameID, A#alarm{status = sent}}};
-	     (Entry, Acc) ->
-		  {Entry, Acc}
-	  end, [], Alarms),
+			      {'can-value', Value}]} | Send],
+		   orddict:store(FrameID, A#alarm{status = sent}, Update)};
+	     (_Frame, _Alarm, Acc) ->
+		  Acc
+	  end, {[], Alarms}, Alarms),
+    %% {ToSend, NewAlarms} =
+    %% 	lists:mapfoldr(
+    %% 	  fun({FrameID, #alarm{status = set,
+    %% 			       ts = TS,
+    %% 			       value = Value} = A}, Acc) ->
+    %% 		  {[{struct, [{'ts', TS},
+    %% 			      {'can-frame-id', FrameID},
+    %% 			      {'can-value', Value}]} | Acc],
+    %% 		   {FrameID, orddict:store(
+    %% 			       FrameID, A#alarm{status = sent}, Acc)}};
+    %% 	     (Entry, Acc) ->
+    %% 		  {Entry, Acc}
+    %% 	  end, orddict:new(), orddict:to_list(Alarms)),
     exoport:rpc(exodm_rpc, rpc, [<<"demo">>, <<"process-alarms">>,
 				 [{'alarms', {array, ToSend}}]]),
     NewAlarms.
