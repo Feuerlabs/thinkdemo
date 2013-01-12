@@ -5,7 +5,7 @@
 	 %% set/2,
 	 %% clear/1,
 	 check_alarm/3]).
--export([config_update/1]).
+-export([config_update/0]).
 
 -export([start_link/0,
 	 init/1,
@@ -16,6 +16,7 @@
 	 code_change/3]).
 
 -include_lib("lager/include/log.hrl").
+-include_lib("kvdb/include/kvdb_conf.hrl").
 
 -record(st, {alarms = orddict:new()}).
 -record(alarm, {status = clear, set, reset, ts, value}).
@@ -28,12 +29,8 @@
 check_alarm(FrameID, DataLen, Data) ->
     gen_server:cast(?MODULE, {check_alarm, timestamp(), FrameID, Data, DataLen}).
 
-config_update(Data) ->
-    gen_server:cast(?MODULE, {config, alarms(Data)}).
-
-alarms(ConfigEntries) ->
-    ?debug("alarms(~p)~n", [ConfigEntries]),
-    [].
+config_update() ->
+    gen_server:cast(?MODULE, config_update).
 
 %% clear(FrameID) ->
 %%     gen_server:cast(?MODULE, {clear, FrameID}).
@@ -42,7 +39,7 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_) ->
-    {ok, #st{}}.
+    {ok, read_alarms(#st{})}.
 
 %% handle_cast({set, TS, FrameID, Value}, #st{alarms = As} = S) ->
 %%     S1 = case orddict:find(FrameID, As) of
@@ -83,8 +80,10 @@ handle_cast({check_alarm, TS, FrameID, Data, DataLen},
 	end,
     {noreply, S1};
 
-handle_cast({config_update, _Thresholds}, S) ->
-    {noreply, S};
+handle_cast(config_update, S) ->
+    S1 = read_alarms(S),
+    ?debug("read_alarms() -> ~p~n", [S1#st.alarms]),
+    {noreply, S1};
 
 handle_cast(_, S) ->
     {noreply, S}.
@@ -121,10 +120,10 @@ set_alarm(TS, FrameID, Value, Alarm, #st{alarms = As} = S) ->
 
 clear_alarm(TS, FrameID, Value, Alarm, #st{alarms = As} = S) ->
     case Alarm of
-	#alarm{status = cleared} ->
+	#alarm{status = clear} ->
 	    S;
 	_ ->
-	    NewAs = orddict:store(FrameID, Alarm#alarm{status = cleared,
+	    NewAs = orddict:store(FrameID, Alarm#alarm{status = clear,
 						       ts = TS,
 						       value = Value}, As),
 	    S#st{alarms = NewAs}
@@ -162,4 +161,43 @@ rpc(Alarms) ->
 can_data_value(Len, Bin) ->
     <<Val:Len/integer-unit:8>> = Bin,
     Val.
+
+read_alarms(#st{alarms = As} = S) ->
+    case read_tree() of
+	[] ->
+	    S#st{alarms = orddict:new()};
+	#conf_tree{tree = T} ->
+	    As1 = lists:foldl(
+		    fun({ID, Attrs}, Acc) ->
+			    SThr = find_val(
+				     <<"trigger_threshold">>, Attrs, infinity),
+			    CThr = find_val(
+				     <<"reset_threshold">>, Attrs, 0),
+			    orddict:store(ID, #alarm{set = SThr,
+						     reset = CThr}, Acc)
+		    end, As, T),
+	    S#st{alarms = As1}
+    end.
+
+read_tree() ->
+    case kvdb_conf:read_tree(<<"exodemo*config*alarm">>) of
+	[] -> [];
+	T  -> right_tree(T)
+    end.
+
+right_tree(#conf_tree{root = Root} = Tree) ->
+    case kvdb_conf:unescape_key(Root) of
+	<<"exodemo*config*alarm">> ->
+	    Tree;
+	<<"exodemo*config*alarm", _/binary>> ->
+	    right_tree(kvdb_conf:shift_root(up, Tree))
+    end.
+
+find_val(K, [{K,_,V}|_], _) ->
+    list_to_integer(binary_to_list(V));
+find_val(K, [_|T], Default) ->
+    find_val(K, T, Default);
+find_val(_, [], Default) ->
+    Default.
+
 

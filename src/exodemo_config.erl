@@ -48,10 +48,15 @@ process_elems(Elems) ->
                           ?debug("_Other = ~p~n", [_Other]),
                           Acc
                   end, [], CfgElems),
-            kvdb_conf:in_transaction(
-              fun(_) ->
-                      [kvdb_conf:write(Obj) || Obj <- Data]
-              end),
+            if Data =/= [] ->
+                    kvdb_conf:in_transaction(
+                      fun(_) ->
+                              [kvdb_conf:write(Obj) || Obj <- Data]
+                      end),
+                    exodemo_alarms:config_update();
+               true ->
+                    ok
+            end,
             complete;
         false ->
             ?debug("No config-entries (~p)~n", [Elems]),
