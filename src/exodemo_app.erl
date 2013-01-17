@@ -14,6 +14,12 @@
 start(_StartType, _StartArgs) ->
     exodemo_sup:start_link().
 
+start_phase(alarms, _, _) ->
+    exodemo_alarms:read_config(),
+    ok;
+start_phase(logging, _, _) ->
+    exodemo_log:read_config(),
+    ok;
 start_phase(ping, _, _) ->
     exoport:ping(),
     ok.

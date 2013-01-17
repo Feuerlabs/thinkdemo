@@ -6,17 +6,19 @@
 	 can_data_value/2,
 	 find_val/3]).
 
+-define(EPOCH, 62167219200).
 
 timestamp() ->
     {_,_,US} = Now = os:timestamp(),
     MS = round(US/1000),
-    calendar:datetime_to_gregorian_seconds(
-      calendar:now_to_universal_time(Now)) * 1000 + MS.
+    %% ?EPOCH is 1970-1-1, 0:0:0 in gregorian seconds
+    (calendar:datetime_to_gregorian_seconds(
+      calendar:now_to_universal_time(Now)) - ?EPOCH) * 1000 + MS.
 
 ts_to_datetime(TS) ->
     MS = TS rem 1000,
     S = TS div 1000,
-    {calendar:gregorian_seconds_to_datetime(S), MS}.
+    {calendar:gregorian_seconds_to_datetime(S + ?EPOCH), MS}.
 
 
 make_decimal(MS) ->

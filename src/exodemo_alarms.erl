@@ -5,7 +5,8 @@
 	 %% set/2,
 	 %% clear/1,
 	 check_alarm/3]).
--export([config_update/0]).
+-export([read_config/0,
+	 config_update/0]).
 
 -export([start_link/0,
 	 init/1,
@@ -32,6 +33,9 @@ check_alarm(FrameID, DataLen, Data) ->
 config_update() ->
     gen_server:cast(?MODULE, config_update).
 
+read_config() ->
+    gen_server:call(?MODULE, read_config).
+
 %% clear(FrameID) ->
 %%     gen_server:cast(?MODULE, {clear, FrameID}).
 
@@ -39,7 +43,7 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_) ->
-    {ok, read_alarms(#st{})}.
+    {ok, #st{}}.
 
 
 handle_cast({check_alarm, TS, FrameID, Data, DataLen},
@@ -67,6 +71,8 @@ handle_cast(config_update, S) ->
 handle_cast(_, S) ->
     {noreply, S}.
 
+handle_call(read_config, _From, S) ->
+    {reply, ok, read_alarms(S)};
 handle_call(_Msg, _From, S) ->
     {reply, error, S}.
 

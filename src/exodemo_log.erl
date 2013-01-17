@@ -1,7 +1,9 @@
 -module(exodemo_log).
 -behavior(gen_server).
 
--export([log_can/3]).
+-export([log_can/3,
+	 read_config/0,
+	 config_update/0]).
 
 -export([start_link/0,
 	 init/1,
@@ -23,12 +25,17 @@ log_can(FrameID, DataLen, Data) ->
     %% FIXME: ms_timestamp() should be millisec_timestamp() (ms since epoch).
     gen_server:cast(?MODULE, {log_can, TS, FrameID, DataLen, Data}).
 
+read_config() ->
+    gen_server:call(?MODULE, read_config).
+
+config_update() ->
+    gen_server:cast(?MODULE, config_update).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_) ->
-    {ok, read_config(#st{})}.
+    {ok, #st{}}.
 
 handle_cast({log_can, TS, FrameID, DataLen, Data}, #st{cfg = Cfg} = S) ->
     case orddict:find(FrameID, Cfg) of
@@ -47,7 +54,8 @@ handle_cast(config_update, S) ->
 handle_cast(_, S) ->
     {noreply, S}.
 
-
+handle_call(read_config, _From, S) ->
+    {reply, ok, read_config(S)};
 handle_call(_Msg, _From, S) ->
     {reply, error, S}.
 
