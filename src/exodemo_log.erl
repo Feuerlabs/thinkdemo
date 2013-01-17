@@ -11,10 +11,15 @@
 	 terminate/2,
 	 code_change/3]).
 
--record(st, {}).
+-include_lib("lager/include/log.hrl").
+-include_lib("kvdb/include/kvdb_conf.hrl").
+
+-record(st, {cfg = orddict:new()}).
+-record(i, {buf = new_buf(), int = 500, max = 50, tref,
+	    last = exodemo_lib:timestamp()}).
 
 log_can(FrameID, DataLen, Data) ->
-    TS = exodemo_lib:timestamp(),
+    TS = exodemo_lib:make_decimal(exodemo_lib:timestamp()),
     %% FIXME: ms_timestamp() should be millisec_timestamp() (ms since epoch).
     gen_server:cast(?MODULE, {log_can, TS, FrameID, DataLen, Data}).
 
@@ -23,12 +28,22 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_) ->
-    {ok, #st{}}.
+    {ok, read_config(#st{})}.
 
-handle_cast({log_can, TS, FrameID, DataLen, Data}, S) ->
-    io:format("Will log TS:~p FrameID:~p DataLen:~p Data:~p~n",
-	      [TS, FrameID, DataLen, Data]),
-    {noreply, S};
+handle_cast({log_can, TS, FrameID, DataLen, Data}, #st{cfg = Cfg} = S) ->
+    case orddict:find(FrameID, Cfg) of
+	{ok, #i{buf = B, max = Max} = I} ->
+	    B1 = log_item({TS,DataLen,Data}, B, Max),
+	    I1 = I#i{buf = B1},
+	    Cfg1 = orddict:store(FrameID, I1, Cfg),
+	    {noreply, S#st{cfg = Cfg1}};
+	error ->
+	    {noreply, S}
+    end;
+handle_cast(config_update, S) ->
+    S1 = read_config(S),
+    ?debug("read_config() -> ~p~n", [S1#st.cfg]),
+    {noreply, S1};
 handle_cast(_, S) ->
     {noreply, S}.
 
@@ -36,6 +51,16 @@ handle_cast(_, S) ->
 handle_call(_Msg, _From, S) ->
     {reply, error, S}.
 
+handle_info({timeout, _, {send, FrameID}}, #st{cfg = Cfg} = S) ->
+    case orddict:find(FrameID, Cfg) of
+	{ok, #i{buf = B, int = Int} = I} ->
+	    B1 = send_buf(B, FrameID),
+	    TRef = start_timer(Int, FrameID),
+	    Cfg1 = orddict:store(FrameID, I#i{buf = B1, tref = TRef}, Cfg),
+	    {noreply, S#st{cfg = Cfg1}};
+	error ->
+	    {noreply, S}
+    end;
 handle_info(_Msg, S) ->
     {noreply, S}.
 
@@ -51,3 +76,82 @@ code_change(_FromVsn, S, _Extra) ->
 
 %%     DT = erlang:universaltime(),
 %%     calendar:datetime_to_gregorian_seconds(DT).
+
+new_buf() ->
+    {0, gb_trees:empty()}.
+
+log_item(Item, {Last, T}, Max) ->
+    NewLast = Last+1,
+    T1 = case gb_trees:size(T) of
+	     Sz when Sz >= Max ->
+		 {_, _, TAdj} = gb_trees:take_smallest(T),
+		 TAdj;
+	     _ ->
+		 T
+	 end,
+    {NewLast, gb_trees:insert(NewLast, Item, T1)}.
+
+send_buf({_,B}, ID) ->
+    case gb_trees:to_list(B) of
+	[] ->
+	    %% don't send?
+	    new_buf();
+	[_|_] = List ->
+	    io:fwrite("List = ~p~n", [List]),
+	    LogData = [{struct, [{ts, TS},
+				 {'can-frame-id', ID},
+				 {'can-value',
+				  exodemo_lib:can_data_value(Len, Data)}]}
+		       || {_, {TS, Len, Data}} <- List],
+	    io:fwrite("LogData = ~p~n", [LogData]),
+	    exoport:rpc(
+	      exodm_rpc, rpc, [<<"demo">>, <<"process-logdata">>,
+			       [{'logdata', {array, LogData}}]]),
+	    new_buf()
+    end.
+
+read_config(#st{cfg = Cfg} = S) ->
+    case read_tree() of
+	[] ->
+	    S#st{cfg = orddict:new()};
+	#conf_tree{tree = T} ->
+	    Cfg1 =
+		lists:foldl(
+		  fun({ID, Attrs}, Acc) ->
+			  Sz = to_int(
+				 exodemo_lib:find_val(
+				   <<"buffer_size">>, Attrs, infinity)),
+			  Int = to_int(
+				  exodemo_lib:find_val(
+				    <<"sample_interval">>, Attrs, 1000)),
+			  TRef = start_timer(Int, ID),
+			  I = #i{max = Sz, int = Int, tref = TRef},
+			  orddict:store(ID, I, Acc)
+		  end, Cfg, T),
+	    S#st{cfg = Cfg1}
+    end.
+
+start_timer(Int, ID) ->
+    erlang:start_timer(Int, self(), {send, ID}).
+
+read_tree() ->
+    case kvdb_conf:read_tree(<<"exodemo*config*logging">>) of
+	[] -> [];
+	T  -> right_tree(T)
+    end.
+
+right_tree(#conf_tree{root = Root} = Tree) ->
+    case kvdb_conf:unescape_key(Root) of
+	<<"exodemo*config*logging">> ->
+	    Tree;
+	<<"exodemo*config*logging", _/binary>> ->
+	    right_tree(kvdb_conf:shift_root(up, Tree))
+    end.
+
+to_int(infinity) ->
+    infinity;
+to_int(I) when is_integer(I) ->
+    I;
+to_int(B) when is_binary(B) ->
+    list_to_integer(binary_to_list(B)).
+

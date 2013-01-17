@@ -53,6 +53,7 @@ process_elems(Elems) ->
                       fun(_) ->
                               [kvdb_conf:write(Obj) || Obj <- Data]
                       end),
+                    exodemo_log:config_update(),
                     exodemo_alarms:config_update();
                true ->
                     ok

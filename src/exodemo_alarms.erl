@@ -46,7 +46,7 @@ handle_cast({check_alarm, TS, FrameID, Data, DataLen},
 	    #st{alarms = As} = S) ->
     S1 =case orddict:find(FrameID, As) of
 	    {ok, #alarm{set = SThr, reset = CThr} = Alarm} ->
-		case can_data_value(DataLen, Data) of
+		case exodemo_lib:can_data_value(DataLen, Data) of
 		    I when is_integer(I) ->
 			if I > SThr -> set_alarm(TS, FrameID, I, Alarm, S);
 			   I < CThr -> clear_alarm(TS, FrameID, I, Alarm, S)
@@ -110,8 +110,9 @@ clear_alarm(TS, FrameID, Value, Alarm, #st{alarms = As} = S) ->
     end.
 
 timestamp() ->
-    DT = erlang:universaltime(),
-    calendar:datetime_to_gregorian_seconds(DT) - ?TWO_HOURS.  % GMT
+    %% DT = erlang:universaltime(),
+    exodemo_lib:make_decimal(exodemo_lib:timestamp()).
+    %% calendar:datetime_to_gregorian_seconds(DT) - ?TWO_HOURS.  % GMT
 
 flush_send_msgs() ->
     receive
@@ -151,10 +152,6 @@ rpc(Alarms) ->
 				 [{'alarms', {array, ToSend}}]]),
     NewAlarms.
 
-can_data_value(Len, Bin) ->
-    <<Val:Len/integer-unit:8>> = Bin,
-    Val.
-
 read_alarms(#st{alarms = As} = S) ->
     case read_tree() of
 	[] ->
@@ -162,9 +159,9 @@ read_alarms(#st{alarms = As} = S) ->
 	#conf_tree{tree = T} ->
 	    As1 = lists:foldl(
 		    fun({ID, Attrs}, Acc) ->
-			    SThr = find_val(
+			    SThr = exodemo_lib:find_val(
 				     <<"trigger_threshold">>, Attrs, infinity),
-			    CThr = find_val(
+			    CThr = exodemo_lib:find_val(
 				     <<"reset_threshold">>, Attrs, 0),
 			    orddict:store(ID, #alarm{set = SThr,
 						     reset = CThr}, Acc)
@@ -185,12 +182,4 @@ right_tree(#conf_tree{root = Root} = Tree) ->
 	<<"exodemo*config*alarm", _/binary>> ->
 	    right_tree(kvdb_conf:shift_root(up, Tree))
     end.
-
-find_val(K, [{K,_,V}|_], _) ->
-    list_to_integer(binary_to_list(V));
-find_val(K, [_|T], Default) ->
-    find_val(K, T, Default);
-find_val(_, [], Default) ->
-    Default.
-
 
