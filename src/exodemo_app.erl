@@ -22,6 +22,12 @@ start_phase(logging, _, _) ->
     ok;
 start_phase(ping, _, _) ->
     exoport:ping(),
+    ok;
+start_phase(can, _, _) ->
+    exodemo_can:start_can(),
+    ok;
+start_phase(waypoints, _, _) ->
+    exodemo_waypoints:start_waypoints("/dev/ttySAC1"),
     ok.
 
 stop(_State) ->
