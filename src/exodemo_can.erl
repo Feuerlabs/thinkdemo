@@ -1,7 +1,7 @@
 -module(exodemo_can).
 -behavior(gen_server).
 
--export([start_can/2]).
+-export([start_can/0]).
 
 -export([start_link/0,
 	 init/1,
@@ -11,11 +11,11 @@
 	 terminate/2,
 	 code_change/3]).
 
--record(st, { iface=false, eff=false}).
+-record(st, { iface=false }).
 
-start_can(Interface, ExtendedFrameFormatFlag) ->
-    io:format("exodemo_can:start_can(~p, ~p)~n", [Interface, ExtendedFrameFormatFlag]),
-    gen_server:call(?MODULE, {start_can, Interface, ExtendedFrameFormatFlag}).
+start_can() ->
+    io:format("exodemo_can:start_can()~n", []),
+    gen_server:call(?MODULE, {start_can, "can0", "can_mcp2515_drv"}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -28,8 +28,8 @@ handle_cast(_, S) ->
     {noreply, S}.
 
 
-handle_call({start_can, Interface, ExtendedFrameFormatFlag}, _From, #st { iface = OldInterface } = _St) ->
-    io:format("exodemo_can:handle_call(start_can, ~p, ~p)~n", [Interface, ExtendedFrameFormatFlag]),
+handle_call({start_can, Interface, Driver}, _From, #st { iface = OldInterface } = _St) ->
+    io:format("exodemo_can:handle_call(start_can, ~p, ~p)~n", [Interface, Driver]),
     case OldInterface of
 	false ->
 	    true;
@@ -37,9 +37,9 @@ handle_call({start_can, Interface, ExtendedFrameFormatFlag}, _From, #st { iface 
 	    can_sock:stop(OldInterface)
     end,
 
-    can_sock:start(Interface),
+    can_sock:start(Interface, Driver, []),
     can_router:attach(),
-    {reply, ok, #st { iface = Interface, eff = ExtendedFrameFormatFlag }};
+    {reply, ok, #st { iface = Interface }};
 
 handle_call(Msg, From, S) ->
     io:format("exodemo_can:handle_call(~p, ~p, ~p)~n", [Msg, From, S]),

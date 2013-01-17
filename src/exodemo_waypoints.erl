@@ -36,9 +36,37 @@ handle_call({start_waypoints, Device}, _From, _S) ->
 handle_call(_Msg, _From, S) ->
     {reply, error, S}.
 
+
+handle_info({nmea_log, _NmeaPid, Tab, Pos, Len, Size}, State) ->
+    Wpts = read_wpts(Tab, Pos, Len, Size, []),
+    %% Ulf Wiger. Add waypoint logging here.
+%%    case do_some_waypoint_stuff_here({waypoint,Wpts}, nmea_0183_srv, State) of
+%%	{noreply,State1} ->
+%%	    {noreply, State1};
+%%	{reply, What, State1} ->
+%%	    {noreply, State1}
+%%    end;
+     {noReply, State};
+
 handle_info(Msg, S) ->
-    io:format("exodemo_waypoints:handle_info(~p, ~p)~n", [Msg, S]),
     {noreply, S}.
+
+read_wpts(_Tab, _Pos, 0, _Size, Acc) ->
+    lists:reverse(Acc);
+
+
+read_wpts(Tab, Pos, Len, Size, Acc) ->
+    case ets:lookup(Tab, Pos) of
+	[{_,{position,Lat,Long}}] ->
+	    FLat = trunc((Lat+90.0)*100000),
+	    FLong = trunc((Long+180.0)*100000),
+	    read_wpts(Tab, (Pos+1) rem Size, Len-1, Size,
+		      [{absolute_position, FLat, FLong}|Acc]);
+	[{_,{timestamp, Ts}}] ->
+	    read_wpts(Tab, (Pos+1) rem Size, Len-1, Size,
+		      [{absolute_timestamp, Ts}|Acc])
+    end.
+
 
 terminate(_Reason, _S) ->
     ok.
