@@ -47,7 +47,7 @@ handle_call(Msg, From, S) ->
 
 
 handle_info({can_frame, FrameID, DataLen, Data, _A, _B}, St) ->
-    io:format("exodemo_can:handle_info(can_frame, ~p, ~p)~n", [FrameID, DataLen]),
+%%    io:format("exodemo_can:handle_info(can_frame, ~p, ~p)~n", [FrameID, DataLen]),
     exodemo_log:log_can(FrameID, DataLen, Data),
     exodemo_alarms:check_alarm(FrameID, DataLen, Data),
     {noreply, St};

@@ -29,9 +29,9 @@ handle_cast(_, S) ->
 
 handle_call({start_waypoints, Device}, _From, _S) ->
     nmea_0183_app:start(false, false),
-    Res = nmea_0183_srv:start(Device),
-    nmea_0183_srv:subscribe(self(), true),
-    {reply, ok, #st { nmea = Res }};
+    {ok, Pid } = nmea_0183_srv:start(Device),
+    nmea_0183_srv:subscribe(Pid, 1000),
+    {reply, ok, #st { nmea = Pid }};
 
 handle_call(_Msg, _From, S) ->
     {reply, error, S}.
@@ -39,6 +39,7 @@ handle_call(_Msg, _From, S) ->
 
 handle_info({nmea_log, _NmeaPid, Tab, Pos, Len, Size}, State) ->
     Wpts = read_wpts(Tab, Pos, Len, Size, []),
+    io:format("Waypoints: ~p~n", [Wpts]),
     %% Ulf Wiger. Add waypoint logging here.
 %%    case do_some_waypoint_stuff_here({waypoint,Wpts}, nmea_0183_srv, State) of
 %%	{noreply,State1} ->
@@ -46,7 +47,7 @@ handle_info({nmea_log, _NmeaPid, Tab, Pos, Len, Size}, State) ->
 %%	{reply, What, State1} ->
 %%	    {noreply, State1}
 %%    end;
-     {noReply, State};
+     {noreply, State};
 
 handle_info(Msg, S) ->
     {noreply, S}.
