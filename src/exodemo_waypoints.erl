@@ -28,9 +28,11 @@ handle_cast(_, S) ->
     {noreply, S}.
 
 handle_call({start_waypoints, Device}, _From, _S) ->
-    nmea_0183_app:start(false, false),
+    io:format("Starting nmea(~p)~n", [Device]),
     {ok, Pid } = nmea_0183_srv:start(Device),
+    io:format("Subscribing nmea~n", []),
     nmea_0183_srv:subscribe(Pid, 1000),
+    io:format("Subscribing nmea~n", []),
     {reply, ok, #st { nmea = Pid }};
 
 handle_call(_Msg, _From, S) ->
@@ -49,7 +51,7 @@ handle_info({nmea_log, _NmeaPid, Tab, Pos, Len, Size}, State) ->
 %%    end;
      {noreply, State};
 
-handle_info(Msg, S) ->
+handle_info(_Msg, S) ->
     {noreply, S}.
 
 read_wpts(_Tab, _Pos, 0, _Size, Acc) ->
