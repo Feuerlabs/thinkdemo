@@ -15,7 +15,7 @@
 
 start_can() ->
     io:format("exodemo_can:start_can()~n", []),
-%%    gen_server:call(?MODULE, {start_can, "can0", "can_mcp2515_drv"}),
+    gen_server:call(?MODULE, {start_can, "can0", "can_mcp2515_drv"}),
     {reply, ok, #st {  }}.
 
 start_link() ->
