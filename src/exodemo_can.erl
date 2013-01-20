@@ -15,14 +15,14 @@
 
 start_can() ->
     io:format("exodemo_can:start_can()~n", []),
-    gen_server:call(?MODULE, {start_can, "can0", "can_mcp2515_drv"}),
-    {reply, ok, #st {  }}.
+    gen_server:call(?MODULE, {start_can, "can0", "can_mcp2515_drv"}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_) ->
     io:format("exodemo_can:init()~n"),
+    can_router:start(),
     {ok, #st{}}.
 
 handle_cast(_, S) ->
@@ -37,6 +37,8 @@ handle_call({start_can, Interface, Driver}, _From, #st { iface = OldInterface } 
 	_ ->
 	    can_sock:stop(OldInterface)
     end,
+    io:format("exodemo_can:handle_call(start_can, ~p, ~p): Starting router~n", [Interface, Driver]),
+
 
     can_sock:start(Interface, Driver, []),
     can_router:attach(),
