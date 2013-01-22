@@ -46,21 +46,22 @@ init(_) ->
     {ok, #st{}}.
 
 
-handle_cast({check_alarm, TS, FrameID, Data, DataLen},
+handle_cast({check_alarm, TS, FrameID, Data, _DataLen},
 	    #st{alarms = As} = S) ->
-    S1 =case orddict:find(list_to_binary(integer_to_list(FrameID)), As) of
-	    {ok, #alarm{set = SThr, reset = CThr} = Alarm} ->
-		case Data of
-		    I when is_integer(I) ->
-			if I > SThr -> set_alarm(TS, FrameID, I, Alarm, S);
-			   I < CThr -> clear_alarm(TS, FrameID, I, Alarm, S)
-			end;
-		    _ ->
-			S
-		end;
-	    _ ->
-		S
-	end,
+    Key = list_to_binary(integer_to_list(FrameID)),
+    S1 = case orddict:find(Key, As) of
+	     {ok, #alarm{set = SThr, reset = CThr} = Alarm} ->
+		 case Data of
+		     I when is_integer(I) ->
+			 if I > SThr -> set_alarm(TS, Key, I, Alarm, S);
+			    I < CThr -> clear_alarm(TS, Key, I, Alarm, S)
+			 end;
+		     _ ->
+			 S
+		 end;
+	     _ ->
+		 S
+	 end,
     {noreply, S1};
 
 handle_cast(config_update, S) ->
