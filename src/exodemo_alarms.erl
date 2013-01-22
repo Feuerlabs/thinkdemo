@@ -48,7 +48,7 @@ init(_) ->
 
 handle_cast({check_alarm, TS, FrameID, Data, DataLen},
 	    #st{alarms = As} = S) ->
-    S1 =case orddict:find(FrameID, As) of
+    S1 =case orddict:find(list_to_binary(integer_to_list(FrameID)), As) of
 	    {ok, #alarm{set = SThr, reset = CThr} = Alarm} ->
 		case exodemo_lib:can_data_value(DataLen, Data) of
 		    I when is_integer(I) ->
