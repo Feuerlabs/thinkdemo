@@ -28,11 +28,8 @@ handle_cast(_, S) ->
     {noreply, S}.
 
 handle_call({start_waypoints, Device}, _From, _S) ->
-    io:format("Starting nmea(~p)~n", [Device]),
     {ok, Pid } = nmea_0183_srv:start(Device),
-    io:format("Subscribing nmea~n", []),
-    nmea_0183_srv:subscribe(Pid, 1000),
-    io:format("Subscribing nmea~n", []),
+    nmea_0183_srv:subscribe(Pid, 10000),
     {reply, ok, #st { nmea = Pid }};
 
 handle_call(_Msg, _From, S) ->
@@ -41,7 +38,7 @@ handle_call(_Msg, _From, S) ->
 
 handle_info({nmea_log, _NmeaPid, Tab, Pos, Len, Size}, State) ->
     Wpts = read_wpts(Tab, Pos, Len, Size, []),
-    io:format("Waypoints: ~p~n", [Wpts]),
+    send_waypoints(Wpts),
     %% Ulf Wiger. Add waypoint logging here.
 %%    case do_some_waypoint_stuff_here({waypoint,Wpts}, nmea_0183_srv, State) of
 %%	{noreply,State1} ->
@@ -54,6 +51,42 @@ handle_info({nmea_log, _NmeaPid, Tab, Pos, Len, Size}, State) ->
 handle_info(_Msg, S) ->
     {noreply, S}.
 
+unix_time() ->
+     calendar:datetime_to_gregorian_seconds(calendar:now_to_universal_time(now()))-719528*24*3600.
+
+send_waypoints([]) ->
+    true;
+
+send_waypoints(Wpts) ->
+    [H|T] = Wpts,
+    case H of
+	{ position, Lat, Long } ->
+	    exoport:rpc(exodm_rpc, rpc,
+			[<<"demo">>, <<"process-waypoints">>,
+			 [
+			  {'waypoints',
+			   { array,
+			     [
+			       { struct,
+				 [
+				  {ts, unix_time()},
+				  {'lat', Lat},
+				  {'lon', Long }
+				 ]
+			       }
+			     ]
+			   }
+			  }
+			 ]
+			]
+		       );
+	_ ->
+		true
+    end,
+    send_waypoints(T).
+
+
+
 read_wpts(_Tab, _Pos, 0, _Size, Acc) ->
     lists:reverse(Acc);
 
@@ -61,13 +94,13 @@ read_wpts(_Tab, _Pos, 0, _Size, Acc) ->
 read_wpts(Tab, Pos, Len, Size, Acc) ->
     case ets:lookup(Tab, Pos) of
 	[{_,{position,Lat,Long}}] ->
-	    FLat = trunc((Lat+90.0)*100000),
-	    FLong = trunc((Long+180.0)*100000),
 	    read_wpts(Tab, (Pos+1) rem Size, Len-1, Size,
-		      [{absolute_position, FLat, FLong}|Acc]);
+		      [{position, Lat, Long}|Acc]);
 	[{_,{timestamp, Ts}}] ->
 	    read_wpts(Tab, (Pos+1) rem Size, Len-1, Size,
-		      [{absolute_timestamp, Ts}|Acc])
+		      [{timestamp, Ts}|Acc]);
+	X ->
+	    io:format("Uncaught waypoint: ~p~n", [X])
     end.
 
 
