@@ -29,7 +29,7 @@ handle_cast(_, S) ->
 
 handle_call({start_waypoints, Device}, _From, _S) ->
     {ok, Pid } = nmea_0183_srv:start(Device),
-    nmea_0183_srv:subscribe(Pid, 10000),
+    nmea_0183_srv:subscribe(Pid, 3000),
     {reply, ok, #st { nmea = Pid }};
 
 handle_call(_Msg, _From, S) ->
