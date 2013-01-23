@@ -54,7 +54,8 @@ handle_cast({check_alarm, TS, FrameID, Data, _DataLen},
 		 case Data of
 		     I when is_integer(I) ->
 			 if I > SThr -> set_alarm(TS, Key, I, Alarm, S);
-			    I < CThr -> clear_alarm(TS, Key, I, Alarm, S)
+			    I < CThr -> clear_alarm(TS, Key, I, Alarm, S);
+			    true -> S
 			 end;
 		     _ ->
 			 S
