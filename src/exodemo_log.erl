@@ -110,7 +110,7 @@ send_buf({_,B}, ID) ->
 	    new_buf();
 	[_|_] = List ->
 	    io:fwrite("List = ~p~n", [List]),
-	    LogData = [{struct, [{ts, 1234},
+	    LogData = [{struct, [{ts, unix_time()},
 				 {'can-frame-id', list_to_integer(binary_to_list(ID)) },
 				 {'can-value',
 				  Data
@@ -172,3 +172,5 @@ to_int(I) when is_integer(I) ->
 to_int(B) when is_binary(B) ->
     list_to_integer(binary_to_list(B)).
 
+unix_time() ->
+     calendar:datetime_to_gregorian_seconds(calendar:now_to_universal_time(now()))-719528*24*3600.
