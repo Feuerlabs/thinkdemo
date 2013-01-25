@@ -39,9 +39,13 @@ process_elems(Elems) ->
             Data =
                 lists:foldl(
                   fun([{'name', Name},
-                       {'val', {array,[{struct, Values}]}}], Acc) ->
-                          ?debug("Values = ~p~n", [Values]),
-                          Objs = (catch conf_objs(Name, Values)),
+                       {'val', {array, [{struct,_}|_] = Structs}}], Acc) ->
+                       %% {'val', {array,[{struct, Values}]}}], Acc) ->
+                          ?debug("Structs = ~p~n", [Structs]),
+                          Objs = lists:flatmap(
+                                   fun({struct, Values}) ->
+                                           conf_objs(Name, Values)
+                                   end, Structs),
                           ?debug("conf_objs() -> ~p~n", [Objs]),
                           Objs ++ Acc;
                      (_Other, Acc) ->
