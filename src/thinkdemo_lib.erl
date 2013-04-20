@@ -1,4 +1,4 @@
--module(exodemo_lib).
+-module(thinkdemo_lib).
 
 -export([timestamp/0,
 	 ts_to_datetime/1,

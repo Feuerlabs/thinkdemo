@@ -1,4 +1,4 @@
--module(exodemo_app).
+-module(thinkdemo_app).
 
 -behaviour(application).
 
@@ -12,22 +12,22 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    exodemo_sup:start_link().
+    thinkdemo_sup:start_link().
 
 start_phase(alarms, _, _) ->
-    exodemo_alarms:read_config(),
+    thinkdemo_alarms:read_config(),
     ok;
 start_phase(logging, _, _) ->
-    exodemo_log:read_config(),
+    thinkdemo_log:read_config(),
     ok;
 start_phase(ping, _, _) ->
     exoport:ping(),
     ok;
 start_phase(can, _, _) ->
-    exodemo_can:start_can(),
+    thinkdemo_can:start_can(),
     ok;
 start_phase(waypoints, _, _) ->
-    exodemo_waypoints:start_waypoints("/dev/ttySAC1"),
+    thinkdemo_waypoints:start_waypoints("/dev/ttySAC1"),
     ok.
 
 stop(_State) ->

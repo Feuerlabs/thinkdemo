@@ -1,5 +1,5 @@
 
--module(exodemo_sup).
+-module(thinkdemo_sup).
 
 -behaviour(supervisor).
 
@@ -25,11 +25,11 @@ start_link() ->
 
 init([]) ->
     {ok, { {one_for_one, 5, 10},
-	   [?CHILD(exodemo_alarms, worker),
-	    ?CHILD(exodemo_log, worker),
-	    ?CHILD(exodemo_can, worker),
-	    ?CHILD(exodemo_waypoints, worker)
-	    %% ?CHILD(exodemo_gps, worker),
+	   [?CHILD(thinkdemo_alarms, worker),
+	    ?CHILD(thinkdemo_log, worker),
+	    ?CHILD(thinkdemo_can, worker),
+	    ?CHILD(thinkdemo_waypoints, worker)
+	    %% ?CHILD(thinkdemo_gps, worker),
 	    %% ?CHILD(exodmo_config, worker)
 	   ]} }.
 

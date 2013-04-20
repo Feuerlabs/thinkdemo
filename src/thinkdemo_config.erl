@@ -1,12 +1,12 @@
 %% -*- erlang-indent-level: 4;indent-tabs-mode: nil -*-
--module(exodemo_config).
+-module(thinkdemo_config).
 
 -export(['update-config-entry-request'/1]).
 
 -include_lib("lager/include/log.hrl").
 
 root() ->
-    <<"exodemo">>.
+    <<"thinkdemo">>.
 
 status(complete) -> 1;
 status(_) -> 5. % device-error
@@ -57,8 +57,8 @@ process_elems(Elems) ->
                       fun(_) ->
                               [kvdb_conf:write(Obj) || Obj <- Data]
                       end),
-                    exodemo_log:config_update(),
-                    exodemo_alarms:config_update();
+                    thinkdemo_log:config_update(),
+                    thinkdemo_alarms:config_update();
                true ->
                     ok
             end,

@@ -1,4 +1,4 @@
--module(exodemo_alarms).
+-module(thinkdemo_alarms).
 -behavior(gen_server).
 
 -export([
@@ -119,7 +119,7 @@ clear_alarm(TS, FrameID, Value, Alarm, #st{alarms = As} = S) ->
 
 timestamp() ->
     %% DT = erlang:universaltime(),
-    exodemo_lib:make_decimal(exodemo_lib:timestamp()).
+    thinkdemo_lib:make_decimal(thinkdemo_lib:timestamp()).
     %% calendar:datetime_to_gregorian_seconds(DT) - ?TWO_HOURS.  % GMT
 
 flush_send_msgs() ->
@@ -167,9 +167,9 @@ read_alarms(#st{alarms = As} = S) ->
 	#conf_tree{tree = T} ->
 	    As1 = lists:foldl(
 		    fun({ID, Attrs}, Acc) ->
-			    SThr = exodemo_lib:find_val(
+			    SThr = thinkdemo_lib:find_val(
 				     <<"trigger_threshold">>, Attrs, infinity),
-			    CThr = exodemo_lib:find_val(
+			    CThr = thinkdemo_lib:find_val(
 				     <<"reset_threshold">>, Attrs, 0),
 			    orddict:store(ID, #alarm{set = SThr,
 						     reset = CThr}, Acc)
@@ -178,16 +178,16 @@ read_alarms(#st{alarms = As} = S) ->
     end.
 
 read_tree() ->
-    case kvdb_conf:read_tree(<<"exodemo*config*alarm">>) of
+    case kvdb_conf:read_tree(<<"thinkdemo*config*alarm">>) of
 	[] -> [];
 	T  -> right_tree(T)
     end.
 
 right_tree(#conf_tree{root = Root} = Tree) ->
     case kvdb_conf:unescape_key(Root) of
-	<<"exodemo*config*alarm">> ->
+	<<"thinkdemo*config*alarm">> ->
 	    Tree;
-	<<"exodemo*config*alarm", _/binary>> ->
+	<<"thinkdemo*config*alarm", _/binary>> ->
 	    right_tree(kvdb_conf:shift_root(up, Tree))
     end.
 

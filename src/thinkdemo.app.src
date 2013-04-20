@@ -1,5 +1,5 @@
 %% -*- erlang -*-
-{application, exodemo,
+{application, thinkdemo,
  [
   {description, ""},
   {vsn, "1"},
@@ -9,7 +9,7 @@
                   stdlib,
 		  exoport
                  ]},
-  {mod, { exodemo_app, []}},
+  {mod, { thinkdemo_app, []}},
   {start_phases, [{can, []},
 		  {waypoints, []},
 		  {ping, []},

@@ -1,4 +1,4 @@
--module(exodemo_waypoints).
+-module(thinkdemo_waypoints).
 -behavior(gen_server).
 
 -export([start_waypoints/1]).

@@ -1,13 +1,13 @@
-module demo {
+module thinkdemo {
 
-    namespace "http://feuerlabs.com/demo";
-    prefix demo;
+    namespace "http://feuerlabs.com/thinkdemo";
+    prefix thinkdemo;
 
     import exosense {
         prefix exo;
     }
 
-    description "Spec for demo system";
+    description "Spec for THINK car demo usign Motivo drivetrain";
 
     typedef id-string {
       description "Common type for string identifiers in exodm";
