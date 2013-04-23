@@ -1,6 +1,6 @@
 .PHONY:	all deps compile setup clean
 
-NAME=exodemo
+NAME=thinkdemo
 export KVDB_BACKENDS=ets
 
 all: deps compile
