@@ -25,7 +25,7 @@
 
 start_can() ->
     io:format("thinkdemo_can:start_can()~n", []),
-    gen_server:call(?MODULE, {start_can, "can0", "can_mcp2515_drv"}).
+    gen_server:call(?MODULE, {start_can, "can0"}).
 
 
 start_link() ->
@@ -40,17 +40,17 @@ handle_cast(_, S) ->
     {noreply, S}.
 
 
-handle_call({start_can, Interface, Driver}, _From, #st { iface = OldInterface } = _St) ->
-    io:format("thinkdemo_can:handle_call(start_can, ~p, ~p, ~p)~n", [Interface, Driver, OldInterface]),
+handle_call({start_can, Interface}, _From, #st { iface = OldInterface } = _St) ->
+    io:format("thinkdemo_can:handle_call(start_can, ~p, ~p)~n", [Interface, OldInterface]),
     case OldInterface of
 	undefined ->
 	    true;
 	_ ->
 	    can_sock:stop(OldInterface)
     end,
-    io:format("thinkdemo_can:handle_call(start_can, ~p, ~p): Starting router~n", [Interface, Driver]),
+    io:format("thinkdemo_can:handle_call(start_can, ~p): Starting router~n", [Interface]),
 
-    can_sock:start(Interface, Driver, []),
+    can_sock:start(Interface),
     can_router:attach(),
     {reply, ok, #st { iface = Interface }};
 
