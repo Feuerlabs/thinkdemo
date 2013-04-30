@@ -14,6 +14,11 @@
 
 ##
 export KVDB_BACKENDS=ets
+export exo_host=vps.ulf.wiger.net
+export exo_device_id="think-1"
+export exo_account=getaround
+export exo_server_key=1
+export exo_device_key=2
 
 erl -boot $PWD/setup/start -config $PWD/setup/sys
 
