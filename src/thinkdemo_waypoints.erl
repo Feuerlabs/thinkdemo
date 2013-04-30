@@ -62,7 +62,7 @@ send_waypoints(Wpts) ->
     case H of
 	{ position, Lat, Long } ->
 	    exoport:rpc(exodm_rpc, rpc,
-			[<<"demo">>, <<"process-waypoints">>,
+			[<<"thinkdemo">>, <<"process-waypoints">>,
 			 [
 			  {'waypoints',
 			   { array,

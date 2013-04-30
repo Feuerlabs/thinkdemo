@@ -16,7 +16,7 @@ status(_) -> 5. % device-error
     ?debug("update-config-entry-request(~p)~n", [Elems]),
     Status = process_elems(Elems),
     TransactionID = 1,
-    {notify, "demo:update-config-entry-callback",
+    {notify, "thinkdemo:update-config-entry-callback",
      [{'transaction-id', TransactionID},
       {'status-code', status(Status)},
       {'final', true}]}.

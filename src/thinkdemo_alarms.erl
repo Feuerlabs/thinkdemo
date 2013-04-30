@@ -156,7 +156,7 @@ rpc(Alarms) ->
     %% 	     (Entry, Acc) ->
     %% 		  {Entry, Acc}
     %% 	  end, orddict:new(), orddict:to_list(Alarms)),
-    exoport:rpc(exodm_rpc, rpc, [<<"demo">>, <<"process-alarms">>,
+    exoport:rpc(exodm_rpc, rpc, [<<"thinkdemo">>, <<"process-alarms">>,
 				 [{'alarms', {array, ToSend}}]]),
     NewAlarms.
 

@@ -120,7 +120,7 @@ send_buf({_,B}, ID) ->
 		       || {_, {TS, Len, Data}} <- List],
 	    io:fwrite("LogData = ~p~n", [LogData]),
 	    exoport:rpc(
-	      exodm_rpc, rpc, [<<"demo">>, <<"process-logdata">>,
+	      exodm_rpc, rpc, [<<"thinkdemo">>, <<"process-logdata">>,
 			       [{'logdata', {array, LogData}}]]),
 	    new_buf()
     end.
