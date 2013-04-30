@@ -22,6 +22,7 @@ start_phase(logging, _, _) ->
     ok;
 start_phase(ping, _, _) ->
     exoport:ping(),
+    thinkdemo_log:start_refresh_ping(60000),
     ok;
 start_phase(can, _, _) ->
     thinkdemo_can:start_can(),
@@ -32,3 +33,5 @@ start_phase(waypoints, _, _) ->
 
 stop(_State) ->
     ok.
+
+

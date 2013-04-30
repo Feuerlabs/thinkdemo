@@ -3,7 +3,8 @@
 
 -export([log_can/3,
 	 read_config/0,
-	 config_update/0]).
+	 config_update/0,
+	 start_refresh_ping/1]).
 
 -export([start_link/0,
 	 init/1,
@@ -19,6 +20,9 @@
 -record(st, {cfg = orddict:new()}).
 -record(i, {buf = new_buf(), int = 500, max = 50, tref,
 	    last = thinkdemo_lib:timestamp()}).
+
+start_refresh_ping(Interval) ->
+    gen_server:cast(?MODULE, {start_refresh_ping, Interval}).
 
 log_can(FrameID, DataLen, Data) ->
     TS = thinkdemo_lib:make_decimal(thinkdemo_lib:timestamp()),
@@ -38,6 +42,10 @@ start_link() ->
 init(_) ->
     {ok, #st{}}.
 
+handle_cast({ start_refresh_ping, Interval }, St) ->
+    erlang:send_after(Interval, self(), { ping_server, Interval}),
+    { noreply, St};
+
 handle_cast({log_can, TS, FrameID, DataLen, Data}, #st{cfg = Cfg} = S) ->
     case orddict:find(list_to_binary(integer_to_list(FrameID)), Cfg) of
 	{ok, #i{buf = B, max = Max} = I} ->
@@ -54,6 +62,7 @@ handle_cast(config_update, S) ->
     S1 = read_config(S),
     ?debug("read_config() -> ~p~n", [S1#st.cfg]),
     {noreply, S1};
+
 handle_cast(_, S) ->
     {noreply, S}.
 
@@ -73,6 +82,14 @@ handle_info({timeout, _, {send, FrameID}}, #st{cfg = Cfg} = S) ->
 	    io:format("thinkdemo_log(timeout): Nope ~p ~p~n", [FrameID, Cfg ]),
 	    {noreply, S}
     end;
+
+
+handle_info({ping_server, Interval}, S) ->
+    io:format("Will ping server~n",[]),
+    exoport:ping(),
+    erlang:send_after(Interval, self(), { ping_server, Interval}),
+    { noreply, S};
+
 handle_info(_Msg, S) ->
     {noreply, S}.
 
@@ -117,7 +134,7 @@ send_buf({_,B}, ID) ->
 				  %%list_to_binary(integer_to_list(Data))}]}
 				  %% thinkdemo_lib:can_data_value(Len, binary:encode_unsigned(Data))
 							    }]}
-		       || {_, {TS, Len, Data}} <- List],
+		       || {_, {_TS, _Len, Data}} <- List],
 	    io:fwrite("LogData = ~p~n", [LogData]),
 	    exoport:rpc(
 	      exodm_rpc, rpc, [<<"thinkdemo">>, <<"process-logdata">>,
